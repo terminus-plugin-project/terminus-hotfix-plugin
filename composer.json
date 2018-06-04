@@ -1,0 +1,14 @@
+{
+    "name": "terminus-plugin-project/terminus-hotfix-plugin",
+    "description": "Hotfix - A Terminus plugin that adds command(s) to facilitate hotfixes on Pantheon sites.",
+    "license": "MIT",
+    "type": "terminus-plugin",
+    "autoload": {
+        "psr-4": { "Pantheon\\TerminusHotFix\\": "src" }
+    },
+    "extra": {
+        "terminus": {
+            "compatible-version": "^1.8"
+        }
+    }
+}
