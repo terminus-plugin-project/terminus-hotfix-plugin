@@ -32,6 +32,7 @@ class HotFixCommand extends SingleBackupCommand implements RequestAwareInterface
     private $temp_dir;
     private $git_dir;
     private $git_url;
+    private $git_branches;
     private $fs;
     
     /**
@@ -75,17 +76,26 @@ class HotFixCommand extends SingleBackupCommand implements RequestAwareInterface
         // Initialize class vars
         $this->initClassVars($site_env, $multidev, $options);
 
-        // Bail if attempting to use a multidev that already exists
-        $env_keys = array_keys( $this->envs );
-        if( in_array( $multidev, $env_keys, true ) ){
-            throw new TerminusException(
-                'The provided multidev environment {multidev} already exists for the site {site}. Run {terminus_command} to delete it or choose a different multidev name and try again.', 
-                array(
-                    'multidev' => $this->multidev,
-                    'site' => $this->site['name'],
-                    'terminus_command' => "terminus multidev:delete {$this->site['name']}.{$this->multidev} --delete-branch",
-                )
-            );
+        // Bail if attempting to use a git branch that already exists on the remote
+        if( in_array( $this->multidev, array_keys( $this->git_branches ), true ) ){
+            if( in_array( $this->multidev, array_keys( $this->envs ), true ) ){
+                throw new TerminusException(
+                    'An environment for the provided multidev environment {multidev} already exists for the site {site}. Run {terminus_command} to delete it or choose a different multidev name and try again.', 
+                    array(
+                        'multidev' => $this->multidev,
+                        'site' => $this->site['name'],
+                        'terminus_command' => "terminus multidev:delete {$this->site['name']}.{$this->multidev} --delete-branch",
+                    )
+                );
+            } else {
+                throw new TerminusException(
+                    'A git branch for the provided multidev environment {multidev} already exists for the site {site}. Please delete the remote git branch or choose a different multidev name and try again.', 
+                    array(
+                        'multidev' => $this->multidev,
+                        'site' => $this->site['name'],
+                    )
+                );
+            }
         }
         
         // Clone the site locally
@@ -238,9 +248,10 @@ class HotFixCommand extends SingleBackupCommand implements RequestAwareInterface
             }
         }
 
-        // Set the git URL
+        // Set the git variables
         $dev_connection_info = $this->envs['dev']['env_raw']->connectionInfo();
         $this->git_url = $dev_connection_info['git_url'];
+        $this->git_branches = $this->site['site_raw']->getBranches()->serialize();
         
         // Set temp directories
         $this->temp_dir = sys_get_temp_dir() . '/terminus-hotfix-plugin-temp/';
