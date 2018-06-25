@@ -99,16 +99,7 @@ class HotFixCommand extends SingleBackupCommand implements RequestAwareInterface
         }
         
         // Clone the site locally
-        $this->deleteGitDir();
-        $this->createTempDir();
-        $this->log()->notice(
-            'Cloning code for {site_env} to {git_dir}...',
-            array(
-                'site_env' => $site_env,
-                'git_dir' => $this->git_dir,
-            )
-        );
-        $this->passthru("git clone {$this->git_url} {$this->git_dir}");
+        $this->cloneSiteLocally();
         
         // Create the git branch locally and push to Pantheon
         $this->passthru("git -C {$this->git_dir} fetch --tags");
@@ -133,6 +124,19 @@ class HotFixCommand extends SingleBackupCommand implements RequestAwareInterface
 
         $this->deleteTempDir();
 
+    }
+
+    private function cloneSiteLocally() {
+        $this->createTempDir();
+        $this->deleteGitDir();
+        $this->log()->notice(
+            'Cloning code for {site_env} to {git_dir}...',
+            array(
+                'site_env' => $this->$site_env,
+                'git_dir' => $this->git_dir,
+            )
+        );
+        $this->passthru("git clone {$this->git_url} {$this->git_dir}");
     }
 
     /**
