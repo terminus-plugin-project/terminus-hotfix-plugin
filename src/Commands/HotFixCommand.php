@@ -126,13 +126,289 @@ class HotFixCommand extends SingleBackupCommand implements RequestAwareInterface
 
     }
 
+    /**
+     * Deploy a hotfix change from from a multidev environment to test or live and rebase to dev.
+     * 
+     * @authorize
+     *
+     * @command hotfix:env:deploy
+     * @param string $site_env Site and the environment to deploy to in the format `<site>.<env>`.
+     * @param string $multidev The source multidev environment name.
+     * @param array $options
+     * @option boolean $cleanup-temp-dir Delete the temporary directory used for code clone after cloning is complete.
+     * @option string $cc Clear caches after deploy.
+     * @option string $create-backup Create a backup before deploying  to <env> or rebasing to the master branch.
+     * @option string $merge-strategy The git merge strategy to use when rebasing hotfix commits back to master.
+     * @option string $message The annotation to use for the git tag when deploying the hotfix.
+     * @usage <site>.<env> <multidev> Deploys the <multidev> environment hotfix changes for the site <site> to the specified <env>.
+     */
+    public function hotFixEnvDeploy(
+            $site_env,
+            $multidev='hotfix',
+            $options = [
+                'cleanup-temp-dir' => true,
+                'create-backup' => false,
+                'cc' => false,
+                'merge-strategy' => "theirs",
+                'message' => "Hotfix deployment",
+            ]
+        )
+    {
+
+        // Initialize class vars
+        $this->initClassVars($site_env, $multidev, $options);
+
+        // Bail if attempting to deploy to an environment other than test or live
+        if( ! in_array( $this->env['id'], ['test', 'live'], true ) ) {
+            throw new TerminusException(
+                'You can not deploy a hotfix to {env}. Please try again with {test} or {live}.', 
+                array(
+                    'env' => $this->env['id'],
+                    'test' => 'test',
+                    'live' => 'live',
+                )
+            );
+        }
+
+        // Bail if attempting to deploy the hotfix from an invalid environment
+        if( in_array( $this->multidev, ['test', 'live'], true ) ) {
+            throw new TerminusException(
+                'You can not deploy a hotfix from the {multidev} environment. You can only deploy a hotfix from the dev or a multidev environment.', 
+                array(
+                    'multidev' => $this->multidev,
+                )
+            );
+        }
+
+        // Bail if the requested multidev does not exist
+        if( ! in_array( $this->multidev, array_keys( $this->envs ), true ) ){
+            throw new TerminusException(
+                'An environment for the provided multidev environment {multidev} could not be found for the site {site}. You can create one with {terminus_command}', 
+                array(
+                    'multidev' => $this->multidev,
+                    'site' => $this->site['name'],
+                    'terminus_command' => "terminus hotfix:env:create {$this->site['name']}.live {$this->multidev}",
+                )
+            );
+        }
+
+        // Clone the site locally
+        $this->cloneSiteLocally();
+        
+        // Checkout the git branch locally
+        $this->passthru("git -C {$this->git_dir} checkout {$this->multidev}");
+        
+        // Make sure we have all tags locally
+        $this->passthru("git -C {$this->git_dir} fetch --tags");
+        
+        // Calculate the next tag
+        $tag_prefix = "pantheon_{$this->env['id']}_";
+        $current_tag_number = intval( str_replace( $tag_prefix, '', $this->env['git_ref'] ) );
+        $next_tag_number = $current_tag_number + 1;
+        $next_ref = $tag_prefix.$next_tag_number;
+        
+        // Create the next tag
+        $this->log()->notice(
+            'Creating the tag {next_ref} from the previous reference of {git_ref} on {site}...',
+            [
+                'site' => $this->site['name'],
+                'git_ref' => $this->env['git_ref'],
+                'next_ref' => $next_ref,
+            ]
+        );
+
+        $this->passthru("git -C {$this->git_dir} tag -a {$next_ref} -m \"{$this->options['message']}\"");
+
+        // Rebase changes from the branch back to master
+        $this->log()->notice(
+            'Rebasing the changes from {multidev} back to {master} with strategy {strategy} on {site}...',
+            [
+                'master' => 'master',
+                'multidev' => $this->multidev,
+                'site' => $this->site['name'],
+                'strategy' => $this->options['merge-strategy'],
+            ]
+        );
+
+        // Checkout master
+        $this->passthru("git -C {$this->git_dir} checkout master");
+        
+        // Rebase changes
+        if( ! empty( $this->options['merge-strategy'] ) ){
+            $this->passthru("git -C {$this->git_dir} rebase -X {$this->options['merge-strategy']} $next_ref");
+        } else {
+            $this->passthru("git -C {$this->git_dir} rebase $next_ref");
+        }
+
+        // Confirm deployment
+        $confirmation_message = 'Are you sure you want to hotfix deploy the changes from the {multidev} straight to the {env} environment on {site}?';
+
+        $confirm = $this->confirm(
+            $confirmation_message . "\n",
+            [
+                'multidev' => $this->multidev,
+                'site' => $this->site['name'],
+                'env' => $this->env['id'],
+            ]
+        );
+
+        if( ! $confirm ){
+            $this->deleteTempDir();
+            return;
+        }
+
+        // Create a backup before pushing the rebased hotfix to master
+        if( false !== $this->options['create-backup'] ){
+            $this->createBackup('dev');
+        }
+
+        // Make sure the dev environment is in git mode
+        $workflow = $this->envs['dev']['env_raw']->changeConnectionMode('git');
+        if (is_string($workflow)) {
+            $this->log()->notice($workflow);
+        } else {
+            while (!$workflow->checkProgress()) {
+                // TODO: Add workflow progress output
+            }
+            $this->log()->notice($workflow->getMessage());
+        }
+
+        // Push the rebased changes up to dev/master
+        $this->passthru("git -C {$this->git_dir} push origin master --force");
+
+        // Create a backup before doing the hotfix deploy
+        if( false !== $this->options['create-backup'] ){
+            $this->createBackup($this->env['id']);
+        }
+
+        // Push the tag to trigger a deployment
+        $this->passthru("git -C {$this->git_dir} push origin $next_ref");
+
+        // Wait for the deployment to finish
+        $this->waitForDeployment();
+
+        // Clear cache if needed
+        if( false !== $this->options['cc'] ){
+            $workflow = $this->envs[$this->env['id']]['env_raw']->clearCache();
+            while (!$workflow->checkProgress()) {
+                // @TODO: Add Symfony progress bar to indicate that something is happening.
+            }
+            $this->log()->notice('Caches cleared on {site}.{env}.', ['site' => $this->site['name'], 'env' => $this->env,]);
+        }
+
+        $this->log()->notice(
+            'Successfully deployed the hotfix changes from {multidev} to {env} on {site}...',
+            [
+                'multidev' => $this->multidev,
+                'site' => $this->site['name'],
+                'env' => $this->env['id'],
+            ]
+        );
+
+        // Remove the temp dir
+        $this->deleteTempDir();
+
+    }
+
+    /**
+     * Wait for the latest deployment to finish
+     *
+     * @return void
+     */
+    protected function waitForDeployment()
+    {
+        $startTime = 0;
+        $expectedWorkflowDescription = "Deploy code to \"live\"";
+        $maxWaitInSeconds = 60;
+        $startWaiting = time();
+
+        while(time() - $startWaiting < $maxWaitInSeconds) {
+            $workflow = $this->getLatestWorkflow($this->site['site_raw']);
+            $workflowCreationTime = $workflow->get('created_at');
+            $workflowDescription = $workflow->get('description');
+            if (($workflowCreationTime > $startTime) && ($expectedWorkflowDescription == $workflowDescription)) {
+                $this->log()->notice("Workflow '{current}' {status}.", ['current' => $workflowDescription, 'status' => $workflow->getStatus(), ]);
+                if ($workflow->isSuccessful()) {
+                    return;
+                }
+            }
+            else {
+                $this->log()->notice("Current workflow is '{current}'; waiting for '{expected}'", ['current' => $workflowDescription, 'expected' => $expectedWorkflowDescription]);
+            }
+            // Wait a bit, then spin some more
+            sleep(5);
+        }
+    }
+
+    /**
+     * Fetch the info about the currently-executing (or most recently completed)
+     * workflow operation.
+     */
+    protected function getLatestWorkflow($site)
+    {
+        $workflows = $site->getWorkflows()->fetch(['paged' => false,])->all();
+        $workflow = array_shift($workflows);
+        $workflow->fetchWithLogs();
+        return $workflow;
+    }
+
+    /**
+     * Create Backup
+     *
+     * @param array $env environment to backup
+     * @param string $element the element to backup
+     * @return object an instance of the backup element
+     */
+    private function createBackup($env, $element = 'all' )
+    {
+        $message = 'Creating a {element} backup on the {site}.{env} environment...';
+        
+        if( 'all' === $element ){
+            $message = 'Creating a backup of the code, database and media files on the {site}.{env} environment...';
+        }
+
+        $this->log()->notice(
+            $message,
+            [
+                'site' => $this->site['name'],
+                'env' => $env,
+                'element' => $element,
+            ]
+        );
+
+        $backup_options = ['element' => ( $element !== 'all' ) ? $element : null, 'keep-for' => 365,];
+        
+        $backup = $this->envs[$env]['env_raw']->getBackups()->create($backup_options);
+
+        while (!$backup->checkProgress()) {
+            // @todo: Add Symfony progress bar to indicate that something is happening.
+        }
+
+        $message = "Finished backing up the {element} on the {site}.{env} environment.";
+        
+        if( 'all' === $element ){
+            $message = "Finished backing up the code, database and media files on the {site}.{env} environment.";
+        }
+        
+        $this->log()->notice(
+            $message,
+            [
+                'site' => $this->site['name'],
+                'env' => $env,
+                'element' => $element,
+            ]
+        );
+
+        return $backup;
+    }
+
     private function cloneSiteLocally() {
         $this->createTempDir();
         $this->deleteGitDir();
         $this->log()->notice(
             'Cloning code for {site_env} to {git_dir}...',
             array(
-                'site_env' => $this->$site_env,
+                'site_env' => $this->site_env,
                 'git_dir' => $this->git_dir,
             )
         );
@@ -172,8 +448,7 @@ class HotFixCommand extends SingleBackupCommand implements RequestAwareInterface
             );
         }
 
-        $target_ref = $env->get('target_ref');
-        $target_ref = str_replace( ['refs/tags/', 'refs/heads/'], '', $target_ref );
+        $target_ref = str_replace( ['refs/tags/', 'refs/heads/'], '', $env->get('target_ref') );
 
         $return['env'] = array(
             'env_raw' => $env,
@@ -212,11 +487,10 @@ class HotFixCommand extends SingleBackupCommand implements RequestAwareInterface
      * @return void
      */
     private function initClassVars($site_env, $multidev, $options=array()){
-        // Make sure options are booleans and not strings
+        // Set class options
         if( ! empty($options) ){
             foreach( $options as $key => $value ){
-                $options[$key] = boolval( $value );
-                $this->options[$key] = boolval( $value );
+                $this->options[$key] = $value;
             }
         }
 
