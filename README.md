@@ -2,6 +2,10 @@
 
 A [Terminus](http://github.com/pantheon-systems/terminus) plugin that adds the commands to facilitate hotfix workflows on [Pantheon](https://pantheon.io/) sites.
 
+## Demo
+
+[![Terminus Hotfix Plugin Demo](assets/terminus-hotfix-plugin-repo-ss.png?raw=true)](https://youtu.be/T9ukNUGLXnE "Terminus Hotfix Plugin Demo")
+
 ## Disclaimer
 
 While this plugin has worked well for us your mileage may vary due to local machine configuration. This repository is provided without warranty or direct support. Issues and questions may be filed in GitHub but their resolution is not guaranteed.
