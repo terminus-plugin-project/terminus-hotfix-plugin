@@ -448,8 +448,7 @@ class HotFixCommand extends SingleBackupCommand implements RequestAwareInterface
             );
         }
 
-        $target_ref = $env->get('target_ref');
-        $target_ref = str_replace( ['refs/tags/', 'refs/heads/'], '', $target_ref );
+        $target_ref = str_replace( ['refs/tags/', 'refs/heads/'], '', $env->get('target_ref') );
 
         $return['env'] = array(
             'env_raw' => $env,
