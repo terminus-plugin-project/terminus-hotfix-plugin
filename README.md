@@ -12,9 +12,9 @@ Clone this project into your Terminus plugins directory found at `$HOME/.terminu
 
 ## Purpose
 
-Currently hotfix deployments, emergency updates to test/live that skip the normal workflow and potentially undeployed code in `master`, need to be done manually and require more advanced git skills. See the [hotfix doc](https://pantheon.io/docs/hotfixes/) for details. This plugin aims to make that process easier.
+A hotfix is the only way to push code directly to Live without having to go through Dev and Test. Any damage to the source code will be the responsibility of the user. The intended use case is for critical security releases or bug fixes that need to be deployed as quickly and easily as possible. Hotfixes should be used with care and only in emergency situations. Hotfixes should be the exception, not the norm.
 
-The intended use case is for critical security releases or bug fixes that need to be deployed as quickly and easily as possible. Hotfixes should be used with care and only in emergency situations.
+Currently hotfix deployments, emergency updates to test/live that skip the normal workflow and potentially undeployed code in `master`, need to be done manually and require more advanced git skills. See the [hotfix doc](https://pantheon.io/docs/hotfixes/) for details. This plugin aims to make that process easier.
 
 ## Requirements
 
