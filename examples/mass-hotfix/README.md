@@ -10,6 +10,13 @@ The script was written to deploy critical security updates, such as [Drupalgeddo
 
 Example scenario: a severe security vulnerability is available as a WordPress or Drupal [Pantheon upstream update](https://pantheon.io/docs/core-updates/). As a tech lead, I wish to deploy this update as soon as possible to all of the sites I manage, regardless of whether it breaks some functionality, as attacks are expected within hours.
 
+The example scripts are:
+
+* `terminus-mass-hotfix-upstream-updates.sh`
+    - Demonstrates applying the current uptream updates
+* `terminus-mass-hotfix-wordpress-plugin-update.sh`
+    - Demonstrates applying updates to specific WordPress plugins
+
 ## Disclaimer
 
 The script is a proof of concept example, use at your own risk.
@@ -24,13 +31,18 @@ The script is a proof of concept example, use at your own risk.
 
 ## Instructions
 
-These instructions assume a unix environment.
+These instructions assume a unix environment and have been tested on macOS High Sierra.
 
-1) Save `terminus-mass-hotfix.sh` to your desktop
+1) Copy the desired script, e.g. `terminus-mass-hotfix-upstream-updates.sh`, to your desktop
 1) Update the `PANTHEON_ORG_NAME` and `MULTIDEV` variables as needed
+    - Update the `PLUGINS_TO_UPDATE` variable if using `terminus-mass-hotfix-wordpress-plugin-update.sh`
 1) Update the site list command being stored in `PANTHEON_SITE_LIST` as needed
     - For example, filtering by tag
 1) Authenticate with Terminus
     - Ensure you are using a machine token that has sufficient permissions to access, edit and deploy to all of the sites in the command above
 1) Double check the script logic, incuding your edits
-1) Run the script with `sh ~/Desktop/terminus-mass-hotfix.sh`
+1) Run the script
+    - `sh ~/Desktop/terminus-mass-hotfix-upstream-updates.sh` for the custom upstream update hotfix script
+    - `sh ~/Desktop/terminus-mass-hotfix-wordpress-plugin-update.sh` for the WordPress plugin update hotfix script
+1) Review the results
+1) Delete the script from your desktop once done
