@@ -10,9 +10,9 @@ PANTHEON_ORG_NAME=awesome-agency
 MULTIDEV=hotfix
 
 # Stash site list
-# You can also filter by tags, site upstream, etc.
+# You can filter by tags, site upstream, etc.
 # For example, terminus org:site:list --tag=hotfix
-PANTHEON_SITE_LIST="$(terminus org:site:list -n $PANTHEON_ORG_NAME --format=list --field=Name)"
+PANTHEON_SITE_LIST="$(terminus org:site:list -n $PANTHEON_ORG_NAME --format=list --field=Name --tag=hotfix)"
 
 # Loop through all sites from our list
 while read -r SITE_NAME; do
