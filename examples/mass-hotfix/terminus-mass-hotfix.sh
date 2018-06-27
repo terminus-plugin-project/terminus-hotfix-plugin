@@ -60,5 +60,9 @@ while read -r SITE_NAME; do
         terminus -n drush $SITE_NAME.$MULTIDEV -- updatedb
     fi
 
+    # Delete the hotfix multidev
+    echo -e "\nDeleting the ${MULTIDEV} multidev environment for site ${SITE_NAME}..."
+    terminus multidev:delete $SITE_NAME.$MULTIDEV --delete-branch
+
 
 done <<< "$PANTHEON_SITE_LIST"
