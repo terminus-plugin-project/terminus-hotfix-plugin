@@ -26,13 +26,17 @@ while read -r SITE_NAME; do
     PANTHEON_FRAMEWORK="$(terminus site:info ${SITE_NAME} --field=framework)"
 
     # Check for upstream updates
-    HAS_UPSTREAM_UPDATES="$(terminus upstream:updates:list ${SITE_UUID}.${MULTIDEV}  --format=list  2>&1)"
+    HAS_UPSTREAM_UPDATES="$(terminus upstream:updates:list ${SITE_NAME}.${MULTIDEV}  --format=list  2>&1)"
 
     # Continue to the next site if there were not any upstream updates
     if [[ ${HAS_UPSTREAM_UPDATES} == *"no available updates"* ]]
     then
         # no upstream updates available
         echo -e "\nNo upstream updates found for the site ${SITE_NAME}..."
+
+        # Delete the hotfix multidev
+        echo -e "\nDeleting the ${MULTIDEV} multidev environment for site ${SITE_NAME}..."
+        terminus multidev:delete $SITE_NAME.$MULTIDEV --delete-branch
         continue
     fi
 
