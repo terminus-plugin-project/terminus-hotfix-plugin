@@ -36,17 +36,17 @@ while read -r SITE_NAME; do
 
         # Delete the hotfix multidev
         echo -e "\nDeleting the ${MULTIDEV} multidev environment for site ${SITE_NAME}..."
-        terminus multidev:delete $SITE_NAME.$MULTIDEV --delete-branch
+        terminus multidev:delete $SITE_NAME.$MULTIDEV --delete-branch --yes
         continue
     fi
 
     # Apply upstream updates
-    echo -e "\nApplying upstream updates on the hotfix multidev for ${SITE_NAME}..."
+    echo -e "\nApplying upstream updates on the ${MULTIDEV} multidev for ${SITE_NAME}..."
     terminus -n upstream:updates:apply ${SITE_NAME}.${MULTIDEV} --yes --updatedb --accept-upstream
 
 
     # Deploy the hotfix from the multidev directly to the live environment
-    echo -e "\nDeploying upstream updates from the hotfix multidev directly to live for ${SITE_NAME}..."
+    echo -e "\nDeploying upstream updates from the ${MULTIDEV} multidev directly to live for ${SITE_NAME}..."
     terminus -n hotfix:env:deploy ${SITE_NAME}.live ${MULTIDEV} --cc --create-backup --yes
 
     # Run update.php on the live environment
@@ -62,7 +62,7 @@ while read -r SITE_NAME; do
 
     # Delete the hotfix multidev
     echo -e "\nDeleting the ${MULTIDEV} multidev environment for site ${SITE_NAME}..."
-    terminus multidev:delete $SITE_NAME.$MULTIDEV --delete-branch
+    terminus multidev:delete $SITE_NAME.$MULTIDEV --delete-branch --yes
 
 
 done <<< "$PANTHEON_SITE_LIST"
