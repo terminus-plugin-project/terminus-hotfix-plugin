@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Fail on any errors
-set +ex
+set -ex
 
 # Stash org name
-PANTHEON_ORG_NAME=ataylor
+PANTHEON_ORG_NAME=awesome-agency
 
 # Stash hotfix multidev name
 MULTIDEV=hotfix
@@ -15,7 +15,7 @@ MULTIDEV=hotfix
 PANTHEON_SITE_LIST="$(terminus org:site:list -n $PANTHEON_ORG_NAME --format=string --field=Name --tag=hotfix)"
 
 # Stash plugins to update
-PLUGINS_TO_UPDATE='akismet solr-power'
+PLUGINS_TO_UPDATE='some-plugin-slug some-other-plugin-slug'
 
 echo -e "\nAttempting to update the plugins ${PLUGINS_TO_UPDATE} on the sites:\n${PANTHEON_SITE_LIST}"
 
