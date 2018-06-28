@@ -2,9 +2,9 @@
 
 A [Terminus](http://github.com/pantheon-systems/terminus) plugin that adds the commands to facilitate hotfix workflows on [Pantheon](https://pantheon.io/) sites.
 
-## Demo
+## Demo Video
 
-[![Terminus Hotfix Plugin Demo](assets/terminus-hotfix-plugin-repo-ss.png?raw=true)](https://youtu.be/T9ukNUGLXnE "Terminus Hotfix Plugin Demo")
+[![Terminus Hotfix Plugin Demo Video](assets/terminus-hotfix-plugin-repo-ss-with-play-button.png?raw=true)](https://youtu.be/T9ukNUGLXnE "Terminus Hotfix Plugin Demo Video")
 
 ## Disclaimer
 
