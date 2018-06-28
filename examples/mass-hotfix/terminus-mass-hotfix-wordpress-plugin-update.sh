@@ -15,12 +15,12 @@ MULTIDEV=hotfix
 PANTHEON_SITE_LIST="$(terminus org:site:list -n $PANTHEON_ORG_NAME --format=string --field=Name --tag=hotfix)"
 
 # Stash plugins to update
-PLUGINS_TO_UPDATE='some-plugin-slug some-other-plugin-slug'
+PLUGINS_TO_UPDATE='plugin-slug another-plugin-slug'
 
 echo -e "\nAttempting to update the plugins ${PLUGINS_TO_UPDATE} on the sites:\n${PANTHEON_SITE_LIST}"
 
 # Loop through all sites from our list
-while read SITE_NAME; do
+for SITE_NAME in $PANTHEON_SITE_LIST; do
     echo -e "\nAttempting to update the plugins ${PLUGINS_TO_UPDATE} on ${SITE_NAME}..."
 
     # Set updates applied to false
@@ -105,4 +105,4 @@ while read SITE_NAME; do
         fi
     fi
 
-done <<< "${PANTHEON_SITE_LIST}"
+done

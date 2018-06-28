@@ -15,7 +15,7 @@ MULTIDEV=hotfix
 PANTHEON_SITE_LIST="$(terminus org:site:list -n $PANTHEON_ORG_NAME --format=list --field=Name --tag=hotfix)"
 
 # Loop through all sites from our list
-while read -r SITE_NAME; do
+for SITE_NAME in $PANTHEON_SITE_LIST; do
     # Create a hotfix multidev based on the live environment
     terminus hotfix:env:create $SITE_NAME.live ${MULTIDEV}
 
@@ -65,4 +65,4 @@ while read -r SITE_NAME; do
     terminus multidev:delete $SITE_NAME.$MULTIDEV --delete-branch --yes
 
 
-done <<< "$PANTHEON_SITE_LIST"
+done
